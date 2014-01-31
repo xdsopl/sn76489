@@ -1,0 +1,4 @@
+main
+*.vgm
+*.o
+.*.swp

@@ -1,0 +1,9 @@
+sn76489 - sn76489 emulator for vgm
+Written in 2012 by <Ahmet Inan> <xdsopl@googlemail.com>
+To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this software to the public domain worldwide. This software is distributed without any warranty.
+You should have received a copy of the CC0 Public Domain Dedication along with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+wanted to play around with the vgm file format and specifically with my most favorite soundchip ever, the: SN76489
+please do not use this emulator as a reference, as there are other implementations, that are more accurate to the original.
+you need to unzip the vgm files first.
+
