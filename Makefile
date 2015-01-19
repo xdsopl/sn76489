@@ -1,5 +1,5 @@
 CFLAGS = -std=c99 -O3 -W -Wall -D_GNU_SOURCE=1
-LDFLAGS = -lasound -lm
+LDLIBS = -lasound -lm
 
 all: main
 
