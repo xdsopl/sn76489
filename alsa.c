@@ -82,48 +82,35 @@ int write_alsa(pcm_t *pcm, short *buff, int frames)
 
 int open_alsa_read(pcm_t **p, char *name)
 {
-	alsa_t *alsa = (alsa_t *)malloc(sizeof(alsa_t));
-	alsa->close = close_alsa;
-	alsa->info = info_alsa;
-	alsa->rate = rate_alsa;
-	alsa->channels = channels_alsa;
-	alsa->rw = read_alsa;
-
 	snd_pcm_t *pcm;
-	snd_pcm_hw_params_t *params;
-	snd_pcm_hw_params_alloca(&params);
-
 	if (snd_pcm_open(&pcm, name, SND_PCM_STREAM_CAPTURE, 0) < 0) {
 		fprintf(stderr, "Error opening PCM device %s\n", name);
-		free(alsa);
 		return 0;
 	}
 
+	snd_pcm_hw_params_t *params;
+	snd_pcm_hw_params_alloca(&params);
 	if (snd_pcm_hw_params_any(pcm, params) < 0) {
 		fprintf(stderr, "Can not configure this PCM device.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 
 	if (snd_pcm_hw_params_set_access(pcm, params, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
 		fprintf(stderr, "Error setting access.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 
 	if (snd_pcm_hw_params_set_format(pcm, params, SND_PCM_FORMAT_S16_LE) < 0) {
 		fprintf(stderr, "Error setting S16_LE format.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 
 	if (snd_pcm_hw_params_set_rate_resample(pcm, params, 0) < 0) {
 		fprintf(stderr, "Error disabling resampling.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 
@@ -131,31 +118,35 @@ int open_alsa_read(pcm_t **p, char *name)
 	int dir_min = 0;
 	if (snd_pcm_hw_params_set_rate_min(pcm, params, &rate_min, &dir_min) < 0 || rate_min < 8000) {
 		fprintf(stderr, "Error setting min rate.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 
 	if (snd_pcm_hw_params(pcm, params) < 0) {
 		fprintf(stderr, "Error setting HW params.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 	unsigned int rate = 0;
 	if (snd_pcm_hw_params_get_rate(params, &rate, 0) < 0) {
 		fprintf(stderr, "Error getting rate.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
 	unsigned int channels = 0;
 	if (snd_pcm_hw_params_get_channels(params, &channels) < 0) {
 		fprintf(stderr, "Error getting channels.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
+		snd_pcm_close(pcm);
 		return 0;
 	}
+
+	alsa_t *alsa = (alsa_t *)malloc(sizeof(alsa_t));
+	alsa->close = close_alsa;
+	alsa->info = info_alsa;
+	alsa->rate = rate_alsa;
+	alsa->channels = channels_alsa;
+	alsa->rw = read_alsa;
+
 	alsa->pcm = pcm;
 	alsa->r = rate;
 	alsa->c = channels;
@@ -166,6 +157,56 @@ int open_alsa_read(pcm_t **p, char *name)
 
 int open_alsa_write(pcm_t **p, char *name, int rate, int channels, float seconds)
 {
+	snd_pcm_t *pcm;
+	if (snd_pcm_open(&pcm, name, SND_PCM_STREAM_PLAYBACK, 0) < 0) {
+		fprintf(stderr, "Error opening PCM device %s\n", name);
+		return 0;
+	}
+
+	snd_pcm_hw_params_t *params;
+	snd_pcm_hw_params_alloca(&params);
+	if (snd_pcm_hw_params_any(pcm, params) < 0) {
+		fprintf(stderr, "Can not configure this PCM device.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params_set_access(pcm, params, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
+		fprintf(stderr, "Error setting access.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params_set_format(pcm, params, SND_PCM_FORMAT_S16_LE) < 0) {
+		fprintf(stderr, "Error setting S16_LE format.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params_set_rate_resample(pcm, params, 0) < 0) {
+		fprintf(stderr, "Error disabling resampling.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params_set_rate_near(pcm, params, (unsigned int *)&rate, 0) < 0) {
+		fprintf(stderr, "Error setting rate.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params_set_channels_near(pcm, params, (unsigned int *)&channels) < 0) {
+		fprintf(stderr, "Error setting channels.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
+	if (snd_pcm_hw_params(pcm, params) < 0) {
+		fprintf(stderr, "Error setting HW params.\n");
+		snd_pcm_close(pcm);
+		return 0;
+	}
+
 	alsa_t *alsa = (alsa_t *)malloc(sizeof(alsa_t));
 	alsa->close = close_alsa;
 	alsa->info = info_alsa;
@@ -173,60 +214,6 @@ int open_alsa_write(pcm_t **p, char *name, int rate, int channels, float seconds
 	alsa->channels = channels_alsa;
 	alsa->rw = write_alsa;
 
-	snd_pcm_t *pcm;
-	snd_pcm_hw_params_t *params;
-	snd_pcm_hw_params_alloca(&params);
-
-	if (snd_pcm_open(&pcm, name, SND_PCM_STREAM_PLAYBACK, 0) < 0) {
-		fprintf(stderr, "Error opening PCM device %s\n", name);
-		free(alsa);
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_any(pcm, params) < 0) {
-		fprintf(stderr, "Can not configure this PCM device.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_set_access(pcm, params, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
-		fprintf(stderr, "Error setting access.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_set_format(pcm, params, SND_PCM_FORMAT_S16_LE) < 0) {
-		fprintf(stderr, "Error setting S16_LE format.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_set_rate_resample(pcm, params, 0) < 0) {
-		fprintf(stderr, "Error disabling resampling.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_set_rate_near(pcm, params, (unsigned int *)&rate, 0) < 0) {
-		fprintf(stderr, "Error setting rate.\n");
-		return 0;
-	}
-
-	if (snd_pcm_hw_params_set_channels_near(pcm, params, (unsigned int *)&channels) < 0) {
-		fprintf(stderr, "Error setting channels.\n");
-		return 0;
-	}
-
-	if (snd_pcm_hw_params(pcm, params) < 0) {
-		fprintf(stderr, "Error setting HW params.\n");
-		snd_pcm_close(alsa->pcm);
-		free(alsa);
-		return 0;
-	}
 	alsa->pcm = pcm;
 	alsa->r = rate;
 	alsa->c = channels;
